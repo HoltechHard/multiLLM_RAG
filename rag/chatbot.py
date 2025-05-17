@@ -1,4 +1,5 @@
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from config.ai_models import get_model
@@ -7,11 +8,15 @@ class ChatBot:
     def __init__(self, vector_db, model_name):
         self.db = vector_db
         model_config = get_model(model_name)
-        self.llm = ChatOllama(**model_config)
+        
+        if model_name == "OpenAI":
+            self.llm = ChatOpenAI(**model_config)
+        else:
+            self.llm = ChatOllama(**model_config)
         
         self.prompt_template = """
             You are an AI assistant tasked with answering questions based solely
-            on the provided context. Your goal is to generate a comprehensive answer
+            on the provided context. Your goal is to generate a comprehensive ans
             for the given question using only the information available in the context.
 
             context: {context}
