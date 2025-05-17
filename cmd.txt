@@ -1,0 +1,27 @@
+=========================================
+|       LIST OF COMMANDS TO RUN APP     |
+=========================================
+
+1) create python environment
+
+$ python -m venv mrag_env
+
+2) activate python environment
+
+$ .\mrag_env\Scripts\activate
+
+3) install all python packages
+
+$ pip install -r requirements.txt
+
+4) install dependency necessary to make web crawl 
+
+$ playwright install
+
+5) run the streamlit application 
+
+$ streamlit run app.py
+
+6) windows command to verify if streamlit port is available
+
+$ netstat -a -n -o | find "8501"
