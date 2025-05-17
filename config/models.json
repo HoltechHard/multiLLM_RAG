@@ -1,0 +1,25 @@
+{
+    "Deepseek": {
+        "model": "deepseek-r1:1.5b",
+        "base_url": "http://localhost:11434",
+        "temperature": 0.3
+    },
+
+    "Qwen": {
+        "model": "qwen3:1.7b",
+        "base_url": "http://localhost:11434",
+        "temperature": 0.3
+    },
+
+    "Llama": {
+        "model": "llama3.2:3b",
+        "base_url": "http://localhost:11434",
+        "temperature": 0.3
+    },
+
+    "Gemma": {
+        "model": "gemma2:2b",
+        "base_url": "http://localhost:11434",
+        "temperature": 0.3
+    }
+}
