@@ -80,9 +80,6 @@ PreviousNext
 [Privacy](https://www.interconnects.ai/p/<https:/substack.com/privacy>) ∙ [Terms](https://www.interconnects.ai/p/<https:/substack.com/tos>) ∙ [Collection notice](https://www.interconnects.ai/p/<https:/substack.com/ccpa#personal-data-collected>)
 [ Start writing](https://www.interconnects.ai/p/<https:/substack.com/signup?utm_source=substack&utm_medium=web&utm_content=footer>)[Get the app](https://www.interconnects.ai/p/<https:/substack.com/app/app-store-redirect?utm_campaign=app-marketing&utm_content=web-footer-button>)
 [Substack](https://www.interconnects.ai/p/<https:/substack.com>) is the home for great culture
-#### Cookie Policy
-We use necessary cookies to make our site work. With your consent, we also set performance and functionality cookies that help us make improvements by measuring traffic on our site and we process respective personal data. You can withdraw your consent at any time. For more detailed information about the cookies, your personal data and your rights, please see our [privacy policy](https://www.interconnects.ai/p/<https:/substack.com/tos>).
-Manage CookiesOnly NecessaryAccept all
 #### Share
 [](https://www.interconnects.ai/p/<https:/www.interconnects.ai/p/q-star?utm_campaign=unknown&utm_medium=web>)
 Copy linkFacebookEmailNotesMore
