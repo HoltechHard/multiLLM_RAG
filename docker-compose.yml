@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  couchbase:
+    image: couchbase:latest
+    container_name: couchbase_mrag
+    ports:
+      - "8091:8091"
+      - "8092:8092"
+      - "8093:8093"
+      - "8094:8094"
+      - "11210:11210"
+    environment:
+      - COUCHBASE_ADMINISTRATOR_USERNAME=admin
+      - COUCHBASE_ADMINISTRATOR_PASSWORD=123456
+      - COUCHBASE_BUCKET=mrag_llm_bucket
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    volumes:
+      - couchbase_db:/opt/couchbase/var    
+
+volumes:
+  couchbase_db:
