@@ -25,3 +25,27 @@ $ streamlit run app.py
 6) windows command to verify if streamlit port is available
 
 $ netstat -a -n -o | find "8501"
+
+7) pull the couchbase docker image
+
+$ docker-compose pull 
+
+8) start the docker container
+
+$ docker-compose up -d 
+
+9) stop and remove the old container, after update docker-compose, 
+   execute again instruction (8)
+
+$ docker-compose down
+
+10) after run the multiple_llm_rag container, come to the next url to access
+   couchbase services
+URL:
+http://localhost:8091/ui/index.html
+
+11) credentials to set couchbase server 
+
+* cluster name: couchbase_serv
+* username: admin
+* pass: 123456
