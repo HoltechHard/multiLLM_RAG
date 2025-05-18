@@ -1,0 +1,9 @@
+{
+    "couchbase_config": {
+        "host": "couchbase://localhost",
+        "user": "admin",
+        "password": "1234",
+        "bucket": "bucket_mrag",
+        "document": "chatbot_reports"
+    }
+}
