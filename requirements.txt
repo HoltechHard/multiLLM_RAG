@@ -8,7 +8,9 @@ langchain_core==0.3.40
 langchain_openai==0.3.7
 langchain_ollama==0.2.3
 faiss-cpu==1.10.0
+couchbase==4.3.6
 unstructured==0.16.23
+datasets==3.6.0
 markdown==3.7
 python-dotenv==1.0.1
 sentence-transformers==3.4.1
