@@ -5,6 +5,7 @@ import nest_asyncio
 from dotenv import load_dotenv
 import streamlit as st
 from streamlit_chat import message as st_message
+import time
 
 # own classes
 from scrap.scrapper import WebScrapper
@@ -12,6 +13,7 @@ from rag.summarization import WebSummarizer
 from rag.ingest import EmbeddingIngestor
 from rag.chatbot import ChatBot
 from config.ai_models import list_models
+from couch_db.couchdb import couchbase_cnn
 
 # Set Windows event loop policy
 if sys.platform == "win32":
@@ -67,9 +69,12 @@ if page == "Home":
             2) qwen3:1.7b
             3) llama3.2:3b
             4) gemma2:2b
+            5) gpt-4o
         - **FAISS:** vector database to store embeddings
+        - **CouchDB:** document database to store the chatbot results
         - **LangChain:** framework to integrate LLM, external data and tools
         - **Streamlit:** python library to fast prototype web apps
+        - **Craw4AI:** python library to crawl and scrape web pages
         
         Get started!
         """
@@ -153,19 +158,48 @@ elif page == "AI Chatbot":
                 )
 
                 chatbot = ChatBot(st.session_state.vectorstore, selected_model)
-                user_input = st.text_input("Your Message:", key="chat_input")
+                user_input = st.text_input("Your Message:", key="chat_input")                
 
                 if st.button("Send", key="send_button") and user_input:
+                    # start chatbot
+                    start_time = time.time()
+                    
                     bot_answer = chatbot.qa(user_input)
-                    st.session_state.chat_history.append({"user": user_input, "bot": bot_answer})
+                    
+                    end_time = time.time()
+                    total_time = (end_time - start_time)/60
 
-                    chat_file_content = "\n\n".join([f"User: {chat['user']}\nBot: {chat['bot']}" for chat in st.session_state.chat_history])
+                    st.session_state.chat_history.append({
+                        "user": user_input, 
+                        "bot": bot_answer, 
+                        "time": total_time
+                    })
+
+                    chat_file_content = "\n\n".join([f"User: {chat['user']}\nBot: {chat['bot']}\nTime: {chat.get('time', 0):.2f} min" for chat in st.session_state.chat_history])
                     with open("history/chat_history.txt", "w", encoding="utf-8") as cf:
                         cf.write(chat_file_content)
 
+                # show response in frontend
                 if st.session_state.chat_history:
                     for chat in st.session_state.chat_history:
+                        # print chatbot results in frontend
+                        st.markdown(f"Time: {chat.get('time', 0):.2f} minutes")
                         st_message(chat["user"], is_user=True)
                         st_message(chat["bot"], is_user=False)
+
+                        try:                            
+                            # insert results chatbot in couchbase
+                            success = couchbase_cnn.insert(
+                                model_name = selected_model,
+                                question = chat["user"],
+                                answer = chat["bot"],
+                                time = chat.get('time', 0),
+                                score = None
+                            )
+
+                            if not success:
+                                st.warning("Failed to save QA in couchbase!")
+                        except Exception as e:
+                            st.error(f"Couchbase error: {str(e)}")
             else:
                 st.info("Please create embeddings to activate the chat.")
