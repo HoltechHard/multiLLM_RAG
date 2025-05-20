@@ -18,17 +18,17 @@ class ChatBot:
             You are an AI assistant tasked with answering questions based solely
             on the provided context. Your goal is to generate a comprehensive ans
             for the given question using only the information available in the context.
+            Format the response in clean Markdown (e.g., use headings, lists or paragraphs),
+            but do not wrap the reponse in code blocks (e.g., ```markdown) or <response> tags.
 
             context: {context}
-            question: {question}
-
-            <response> Your answer in Markdown format. </response>
+            question: {question}            
         """
 
         self.chain = self.build_chain()
     
     def build_chain(self):
-        prompt = PromptTemplate(template = self.prompt_template, 
+        prompt = PromptTemplate(template = self.prompt_template,
                                 input_variables = ["context", "question"])
         retriever = self.db.as_retriever(search_kwargs = {"k": 5})
 
@@ -43,7 +43,6 @@ class ChatBot:
 
         return chain
 
-    def qa(self, question):        
+    def qa(self, question):
         response = self.chain.invoke(question)
         return response["result"]
-    
