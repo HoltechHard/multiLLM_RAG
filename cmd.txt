@@ -44,8 +44,15 @@ $ docker-compose down
 URL:
 http://localhost:8091/ui/index.html
 
+Hierarchy of couchbase: 
+   bucket ==> collections ==> documents ==> fields
+
 11) credentials to set couchbase server 
 
 * cluster name: couchbase_serv
 * username: admin
 * pass: 123456
+
+12) command to start docker container 
+
+$ docker start couchbase_mrag
