@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import streamlit as st
 from streamlit_chat import message as st_message
 import time
+import pandas as pd
 
 # own classes
 from scrap.scrapper import WebScrapper
@@ -203,3 +204,96 @@ elif page == "AI Chatbot":
                             st.error(f"Couchbase error: {str(e)}")
             else:
                 st.info("Please create embeddings to activate the chat.")
+
+elif page == "Reports":
+    
+    # read data from couchbase
+    list_docs = couchbase_cnn.read_documents()
+
+    if list_docs is None:
+        st.warning("No data is found in Couchbase!")
+
+    # data transformation
+    df = pd.DataFrame({
+        'Model': list_docs['model_name'],
+        'Question': list_docs['question'],
+        'Answer': list_docs['answer'],
+        'Time': list_docs['time'],
+        'Score': list_docs['score']
+    })
+    
+    df['Time'] = df['Time'].apply(lambda x: f"{x:.2f}")
+    df['Score'] = df['Score'].fillna(0)
+    df['Actions'] = "View"
+    df['row_id'] = range(len(df))    
+
+    # datatable with pagination
+    st.subheader("Historical Report of Conversations")
+    
+    # pagination
+    page_size = 5
+    page_num = st.number_input("Page number", min_value = 1, 
+                                max_value = max(1, len(df)-1)//page_size + 1, value = 1)
+    start_idx = (page_num - 1) * page_size
+    end_idx = start_idx + page_size
+
+    # display the current page
+    selected_row = st.dataframe(data = df.iloc[start_idx:end_idx],
+                 column_config = {
+                     "Question": st.column_config.TextColumn(
+                         "Question", width = "medium", help = "Click row to expand"
+                     ),
+                     "Answer": st.column_config.TextColumn(
+                         "Answer", width = "medium", help = "Click row to expand"
+                     ),
+                     "Actions": st.column_config.TextColumn(
+                         "Actions", width = "small"
+                     ),
+                     "row_id": None
+                 }, use_container_width = True)
+    
+    if 'selected_row_id' not in st.session_state:
+        st.session_state.selected_row_id = None
+
+    # create form for each view button
+    for idx, row in df.iloc[start_idx:end_idx].iterrows():
+        cols = st.columns([5, 1])
+        with cols[1]:
+            if st.button("View", key = f"view_{row['row_id']}"):
+                st.session_state.selected_row_id = row['row_id']                
+    
+    # display the detailed view
+    if st.session_state.selected_row_id is not None:
+        selected_data = df[df['row_id'] == st.session_state.selected_row_id].iloc[0]
+
+        with st.container():
+            st.markdown("---")
+            st.subheader("Conversation Details")
+
+            with st.container():
+                cols = st.columns(3)
+                
+                with cols[0]:
+                    st.markdown("**Model Used**")
+                    st.info(selected_data['Model'])
+                with cols[1]:
+                    st.markdown("**Time (min)**")
+                    st.info(selected_data['Time'])
+                with cols[2]:
+                    st.markdown("**Score**")
+                    st.info(selected_data['Score'])
+            
+            with st.container():
+                st.markdown("**Question**")
+                st.success(selected_data['Question'])
+            
+            with st.container():
+                st.markdown("**Answer**")
+                st.text_area("Full Answer",
+                             value = selected_data['Answer'],
+                             height = 450,
+                             disabled = False,
+                             key = f"answer_{selected_data['row_id']}")
+                
+            if st.button("Close details"):
+                st.session_state.selected_row_id = None
