@@ -307,35 +307,33 @@ elif page == "Benchmarks":
     st.header("Highcharts Bar Char Example")
 
     highcharts_path = os.path.join('static', 'highcharts', 'highcharts.js')
+    jquery_path = os.path.join('static', 'js', 'jquery-3.7.1.min.js')
+    chartjs_path = os.path.join('static', 'js', 'chart.js')
 
     with open(highcharts_path, 'r', encoding = 'utf-8') as f:
         highcharts_js = f.read()
 
-    html_content = f"""
-        <script type="text/javascript">
-        // Embed the Highcharts library content:
-        {highcharts_js}
-        </script>
+    with open(jquery_path, 'r', encoding = 'utf-8') as f:
+        jquery_js = f.read()
 
-        <!-- Container for the chart -->
+    with open(chartjs_path, 'r', encoding = 'utf-8') as f:
+        chartjs_js = f.read()
+
+    html_content = f"""        
         <div id="container" style="width:100%; height:400px;"></div>
-
-        <!-- Highcharts chart initialization -->
         <script type="text/javascript">
-        // Wait for the DOM to load and then create the chart:
-        document.addEventListener("DOMContentLoaded", function() {{
-            Highcharts.chart('container', {{
-                chart: {{ type: 'bar' }},
-                title: {{ text: 'Fruit Consumption' }},
-                xAxis: {{ categories: ['Apples', 'Bananas', 'Oranges'] }},
-                yAxis: {{ title: {{ text: 'Fruit eaten' }} }},
-                series: [
-                    {{ name: 'Jane', data: [1, 0, 4] }},
-                    {{ name: 'John', data: [5, 7, 3] }}
-                ]
-            }});
-        }});
+        {highcharts_js}
+        {jquery_js}
+        {chartjs_js}
         </script>
-        """
+    """
     
-    components.html(html_content, height=450)
+    try:
+        components.html(html_content, height = 450)
+    except Exception as e:
+        st.error(f"Error: {str(e)}")
+
+    st.markdown("""
+    ### About This Chart
+    This Highcharts bar chart shows fruit consumption data for Jane and John across three fruit types, using jQuery for DOM handling.
+    """)
