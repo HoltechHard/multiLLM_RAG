@@ -7,6 +7,10 @@ import streamlit as st
 from streamlit_chat import message as st_message
 import time
 import pandas as pd
+import json
+import streamlit.components.v1 as components
+from highcharts_core.chart import Chart
+from highcharts_core.options import HighchartsOptions
 
 # own classes
 from scrap.scrapper import WebScrapper
@@ -297,3 +301,41 @@ elif page == "Reports":
                 
             if st.button("Close details"):
                 st.session_state.selected_row_id = None
+
+elif page == "Benchmarks":
+
+    st.header("Highcharts Bar Char Example")
+
+    highcharts_path = os.path.join('static', 'highcharts', 'highcharts.js')
+
+    with open(highcharts_path, 'r', encoding = 'utf-8') as f:
+        highcharts_js = f.read()
+
+    html_content = f"""
+        <script type="text/javascript">
+        // Embed the Highcharts library content:
+        {highcharts_js}
+        </script>
+
+        <!-- Container for the chart -->
+        <div id="container" style="width:100%; height:400px;"></div>
+
+        <!-- Highcharts chart initialization -->
+        <script type="text/javascript">
+        // Wait for the DOM to load and then create the chart:
+        document.addEventListener("DOMContentLoaded", function() {{
+            Highcharts.chart('container', {{
+                chart: {{ type: 'bar' }},
+                title: {{ text: 'Fruit Consumption' }},
+                xAxis: {{ categories: ['Apples', 'Bananas', 'Oranges'] }},
+                yAxis: {{ title: {{ text: 'Fruit eaten' }} }},
+                series: [
+                    {{ name: 'Jane', data: [1, 0, 4] }},
+                    {{ name: 'John', data: [5, 7, 3] }}
+                ]
+            }});
+        }});
+        </script>
+        """
+    
+    components.html(html_content, height=450)
