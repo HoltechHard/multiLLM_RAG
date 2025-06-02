@@ -5,5 +5,13 @@
         "password": "123456",
         "bucket": "bucket_mrag",
         "document": "chatbot_reports"
+    },
+
+    "couchbase_bench": {
+        "host": "couchbase://localhost",
+        "user": "admin",
+        "password": "123456",
+        "bucket": "bucket_mrag",
+        "document": "chatbot_bech"
     }
 }
