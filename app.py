@@ -8,6 +8,7 @@ from streamlit_chat import message as st_message
 import time
 import pandas as pd
 import json
+from datetime import datetime
 import streamlit.components.v1 as components
 from highcharts_core.chart import Chart
 from highcharts_core.options import HighchartsOptions
@@ -18,7 +19,7 @@ from rag.summarization import WebSummarizer
 from rag.ingest import EmbeddingIngestor
 from rag.chatbot import ChatBot
 from config.ai_models import list_models
-from couch_db.couchdb import couchbase_cnn
+from couch_db.couchdb2 import couchbase_data
 
 # Set Windows event loop policy
 if sys.platform == "win32":
@@ -67,6 +68,8 @@ if page == "Home":
         - **Web Summarization:** Generate detailed summaries of the extracted content.
         - **Create Embeddings:** Embeddings with FAISS for vector representation and retrieval of web-scraped information
         - **Chatbot Interface:** Execute Question-Answering task via a conversational agent.
+        - **Reports:** Generate historical reports of chatbot interactions.
+        - **Bechmark Visualization:** Visualize the performance of different LLMs and their capabilities.
 
         **Technologies:**
         - **LLM:** Models 
@@ -80,12 +83,15 @@ if page == "Home":
         - **LangChain:** framework to integrate LLM, external data and tools
         - **Streamlit:** python library to fast prototype web apps
         - **Craw4AI:** python library to crawl and scrape web pages
+        - **Highcharts:** javascript library for data visualization creating dashboards
         
         Get started!
         """
     )    
 
 elif page == "AI Chatbot":
+
+    # chatbot formulary
     with st.form("url_form"):
         url_input = st.text_input("Enter a URL to crawl:")
         submit_url = st.form_submit_button("Submit URL")
@@ -154,51 +160,60 @@ elif page == "AI Chatbot":
             st.header("4. ChatBot")
 
             if st.session_state.embedding_done:
+
+                # process of generate new experiment
+                user_input = st.text_input("Your Message:", key="chat_input")
+
+                if st.button("New Experiment", key="new_experiment") and user_input:
+
+                    if url_input and user_input:
+                        experiment_key = couchbase_data.init_experiment(url_input, user_input)
+
+                        if experiment_key:
+                            st.session_state.current_experiment = experiment_key
+                            st.success(f"Experiment registered: {experiment_key}!")
+                        else:
+                            st.error("Error to register experiment!")
                 
                 selected_model = st.selectbox(
                     label = "--- Select LLM model ---",
                     options = list_models(),
                     index = 0,
                     help = "Select the LLM model for Chatbot"
-                )
-
-                chatbot = ChatBot(st.session_state.vectorstore, selected_model)
-                user_input = st.text_input("Your Message:", key="chat_input")                
-
+                )                
+                
+                # register details of experiment in couchbase
                 if st.button("Send", key="send_button") and user_input:
-                    # start chatbot
-                    start_time = time.time()
+
+                    if not st.session_state.current_experiment:
+                        st.warning("Please, register the experiment first!")
+                    else:
+                        # start chatbot
+                        start_time = time.time()
+                        chatbot = ChatBot(st.session_state.vectorstore, selected_model)   
+                        bot_answer = chatbot.qa(user_input)
                     
-                    bot_answer = chatbot.qa(user_input)
-                    
-                    end_time = time.time()
-                    total_time = (end_time - start_time)/60
+                        end_time = time.time()
+                        total_time = (end_time - start_time)/60
 
-                    st.session_state.chat_history.append({
-                        "user": user_input, 
-                        "bot": bot_answer, 
-                        "time": total_time
-                    })
+                        st.session_state.chat_history.append({
+                            "user": user_input, 
+                            "bot": bot_answer, 
+                            "time": total_time
+                        })
 
-                    chat_file_content = "\n\n".join([f"User: {chat['user']}\nBot: {chat['bot']}\nTime: {chat.get('time', 0):.2f} min" for chat in st.session_state.chat_history])
-                    with open("history/chat_history.txt", "w", encoding="utf-8") as cf:
-                        cf.write(chat_file_content)
-
-                # show response in frontend
-                if st.session_state.chat_history:
-                    for chat in st.session_state.chat_history:
-                        # print chatbot results in frontend
-                        st.markdown(f"Time: {chat.get('time', 0):.2f} minutes")
-                        st_message(chat["user"], is_user=True)
-                        st_message(chat["bot"], is_user=False)
+                        # save to file
+                        chat_file_content = "\n\n".join([f"User: {chat['user']}\nBot: {chat['bot']}\nTime: {chat.get('time', 0):.2f} min" for chat in st.session_state.chat_history])                        
+                        with open(f"history/chat_history.txt", "w", encoding="utf-8") as cf:
+                            cf.write(chat_file_content)
 
                         try:                            
                             # insert results chatbot in couchbase
-                            success = couchbase_cnn.insert(
+                            success = couchbase_data.insert(
+                                experiment_key = st.session_state.current_experiment,
                                 model_name = selected_model,
-                                question = chat["user"],
-                                answer = chat["bot"],
-                                time = chat.get('time', 0),
+                                answer = bot_answer,                                
+                                time = total_time,
                                 score = None
                             )
 
@@ -206,134 +221,18 @@ elif page == "AI Chatbot":
                                 st.warning("Failed to save QA in couchbase!")
                         except Exception as e:
                             st.error(f"Couchbase error: {str(e)}")
+
+                # clear conversation button
+                if st.button("Clear conversation", key = "clear_button"):
+                    st.session_state.chat_history = []
+
+                # show response in frontend
+                if st.session_state.chat_history:
+                    for chat in st.session_state.chat_history:
+                        # print chatbot results in frontend
+                        st.markdown(f"Time: {chat.get('time', 0):.2f} minutes")
+                        st_message(chat["user"], is_user=True)
+                        st_message(chat["bot"], is_user=False)                        
             else:
                 st.info("Please create embeddings to activate the chat.")
 
-elif page == "Reports":
-    
-    # read data from couchbase
-    list_docs = couchbase_cnn.read_documents()
-
-    if list_docs is None:
-        st.warning("No data is found in Couchbase!")
-
-    # data transformation
-    df = pd.DataFrame({
-        'Model': list_docs['model_name'],
-        'Question': list_docs['question'],
-        'Answer': list_docs['answer'],
-        'Time': list_docs['time'],
-        'Score': list_docs['score']
-    })
-    
-    df['Time'] = df['Time'].apply(lambda x: f"{x:.2f}")
-    df['Score'] = df['Score'].fillna(0)
-    df['Actions'] = "View"
-    df['row_id'] = range(len(df))    
-
-    # datatable with pagination
-    st.subheader("Historical Report of Conversations")
-    
-    # pagination
-    page_size = 5
-    page_num = st.number_input("Page number", min_value = 1, 
-                                max_value = max(1, len(df)-1)//page_size + 1, value = 1)
-    start_idx = (page_num - 1) * page_size
-    end_idx = start_idx + page_size
-
-    # display the current page
-    selected_row = st.dataframe(data = df.iloc[start_idx:end_idx],
-                 column_config = {
-                     "Question": st.column_config.TextColumn(
-                         "Question", width = "medium", help = "Click row to expand"
-                     ),
-                     "Answer": st.column_config.TextColumn(
-                         "Answer", width = "medium", help = "Click row to expand"
-                     ),
-                     "Actions": st.column_config.TextColumn(
-                         "Actions", width = "small"
-                     ),
-                     "row_id": None
-                 }, use_container_width = True)
-    
-    if 'selected_row_id' not in st.session_state:
-        st.session_state.selected_row_id = None
-
-    # create form for each view button
-    for idx, row in df.iloc[start_idx:end_idx].iterrows():
-        cols = st.columns([5, 1])
-        with cols[1]:
-            if st.button("View", key = f"view_{row['row_id']}"):
-                st.session_state.selected_row_id = row['row_id']                
-    
-    # display the detailed view
-    if st.session_state.selected_row_id is not None:
-        selected_data = df[df['row_id'] == st.session_state.selected_row_id].iloc[0]
-
-        with st.container():
-            st.markdown("---")
-            st.subheader("Conversation Details")
-
-            with st.container():
-                cols = st.columns(3)
-                
-                with cols[0]:
-                    st.markdown("**Model Used**")
-                    st.info(selected_data['Model'])
-                with cols[1]:
-                    st.markdown("**Time (min)**")
-                    st.info(selected_data['Time'])
-                with cols[2]:
-                    st.markdown("**Score**")
-                    st.info(selected_data['Score'])
-            
-            with st.container():
-                st.markdown("**Question**")
-                st.success(selected_data['Question'])
-            
-            with st.container():
-                st.markdown("**Answer**")
-                st.text_area("Full Answer",
-                             value = selected_data['Answer'],
-                             height = 450,
-                             disabled = False,
-                             key = f"answer_{selected_data['row_id']}")
-                
-            if st.button("Close details"):
-                st.session_state.selected_row_id = None
-
-elif page == "Benchmarks":
-
-    st.header("Highcharts Bar Char Example")
-
-    highcharts_path = os.path.join('static', 'highcharts', 'highcharts.js')
-    jquery_path = os.path.join('static', 'js', 'jquery-3.7.1.min.js')
-    chartjs_path = os.path.join('static', 'js', 'chart.js')
-
-    with open(highcharts_path, 'r', encoding = 'utf-8') as f:
-        highcharts_js = f.read()
-
-    with open(jquery_path, 'r', encoding = 'utf-8') as f:
-        jquery_js = f.read()
-
-    with open(chartjs_path, 'r', encoding = 'utf-8') as f:
-        chartjs_js = f.read()
-
-    html_content = f"""        
-        <div id="container" style="width:100%; height:400px;"></div>
-        <script type="text/javascript">
-        {highcharts_js}
-        {jquery_js}
-        {chartjs_js}
-        </script>
-    """
-    
-    try:
-        components.html(html_content, height = 450)
-    except Exception as e:
-        st.error(f"Error: {str(e)}")
-
-    st.markdown("""
-    ### About This Chart
-    This Highcharts bar chart shows fruit consumption data for Jane and John across three fruit types, using jQuery for DOM handling.
-    """)
